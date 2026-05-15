@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>OSM selection preview + download</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="https://api.mapbox.com/mapbox-gl-js/v3.16.0/mapbox-gl.css" rel="stylesheet">
+  <link href="/style.css" rel="stylesheet">
+</head>
+<body>
+  <div class="topbar">
+    <button id="styleTopographicBtn">Topographic</button>
+    <button id="styleTouristicBtn">Touristic</button>
+    <button id="styleWaterBtn">Water</button>
+
+    <button id="showHikingBtn">Show hiking routes</button>
+    <button id="showWeirsBtn">Show weirs</button>
+    <button id="downloadGeojsonBtn">Download current selection (.geojson)</button>
+    <button id="clearBtn">Clear</button>
+
+    <span id="status">Ready</span>
+  </div>
+
+  <div id="bbox"></div>
+  <div id="map"></div>
+
+  <script src="https://api.mapbox.com/mapbox-gl-js/v3.16.0/mapbox-gl.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>
