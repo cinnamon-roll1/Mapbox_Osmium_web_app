@@ -1,6 +1,10 @@
 # Mapbox Osmium Web App
 
-Web application for preview selected OpenStreetMap data in Mapbox and exporting the current map selection from OpenStreetMap data to GeoJSON.
+Web application for preview selected OpenStreetMap data in Mapbox in predefined map styles and exporting the current map selection from OpenStreetMap data to GeoJSON.
+
+This app was made as a part of bachelors thesis "Web tool for extraction and styling open-source map data" (CTU, Faculty of Civil Engineering, branch Geodesy and Cartography). 
+
+Last update: 16.5.2026
 
 ## Requirements
 
