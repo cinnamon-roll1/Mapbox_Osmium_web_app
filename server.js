@@ -1,20 +1,20 @@
-import express from "express";
-import path from "path";
-import fs from "fs/promises";
-import { existsSync } from "fs";
-import { fileURLToPath } from "url";
-import { spawn } from "child_process";
+import express from "express";                      // for 
+import path from "path";                            //
+import fs from "fs/promises";                       //
+import { existsSync } from "fs";                    //
+import { fileURLToPath } from "url";                //
+import { execFile } from "child_process";           //
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const __filename = fileURLToPath(import.meta.url);  //
+const __dirname = path.dirname(__filename);         //
 
-const app = express();
-const PORT = 3000;
+const app = express();                              //
+const PORT = 3000;                                  //
 
-const DATA_FILE = path.join(__dirname, "data", "czech-republic-latest.osm.pbf");
-const EXPORT_DIR = path.join(__dirname, "exports");
-const PUBLIC_DIR = path.join(__dirname, "public");
-const SCRIPT_DIR = path.join(__dirname, "scripts");
+const DATA_FILE = path.join(__dirname, "data", "czech-republic-latest.osm.pbf");  //
+const EXPORT_DIR = path.join(__dirname, "exports");                               //
+const PUBLIC_DIR = path.join(__dirname, "public");                                //
+const SCRIPT_DIR = path.join(__dirname, "scripts");                               //
 
 if (!existsSync(DATA_FILE)) {
   console.error("Missing input file:", DATA_FILE);
@@ -29,30 +29,21 @@ app.use(express.static(PUBLIC_DIR));
 app.use("/downloads", express.static(EXPORT_DIR));
 
 const TOURISTIC_OSM_FILTERS = [
-  // ---------------------------------------------------------------------------
-  // Tourist / hiking route relations
-  // ---------------------------------------------------------------------------
+// Hiking routes relations
   "r/route=hiking",
   "r/route=foot",
-
-  // Czech KČT tourist route colour tags
+// KCT colours of hiking routes
   "r/kct_red",
   "r/kct_blue",
   "r/kct_green",
   "r/kct_yellow",
   "r/kct_white",
-
-  // Generic hiking-symbol tags
+// 
   "r/osmc:symbol",
   "r/colour",
-
-  // ---------------------------------------------------------------------------
-  // Roads, streets, paths, tracks, steps, crossings
-  // Mapbox road source alternative
-  // ---------------------------------------------------------------------------
+// Roads, streets, paths, tracks, steps, crossings (Mapbox road source)
   "nw/highway",
-
-  // Useful road/path attributes
+// Roads/paths attributes
   "nw/foot",
   "nw/bicycle",
   "nw/horse",
@@ -65,37 +56,28 @@ const TOURISTIC_OSM_FILTERS = [
   "nw/cycleway",
   "nw/sidewalk",
   "nw/footway",
-
-  // Road structures
+// Road structures
   "nw/bridge",
   "nw/tunnel",
   "nw/ford",
   "nw/layer",
-
-  // Crossings
+// Crossings
   "n/highway=crossing",
   "w/highway=crossing",
   "w/footway=crossing",
   "nw/crossing",
-
-  // Turning features
+// Turnings
   "n/highway=turning_circle",
   "n/highway=turning_loop",
   "w/highway=turning_circle",
   "w/highway=turning_loop",
-
-  // Construction roads
+// Construction
   "w/highway=construction",
   "w/construction",
-
-  // Road polygons / pedestrian areas
+// Road polygons and/or pedestrian areas
   "w/area:highway",
   "w/area=yes",
-
-  // ---------------------------------------------------------------------------
-  // Railways
-  // Mapbox major_rail / minor_rail alternative
-  // ---------------------------------------------------------------------------
+// Railways (Mapbox major_rail, minor_rail)
   "nw/railway",
   "nw/railway=rail",
   "nw/railway=light_rail",
@@ -106,35 +88,20 @@ const TOURISTIC_OSM_FILTERS = [
   "nw/railway=station",
   "nw/railway=halt",
   "nw/railway=tram_stop",
-
-  // ---------------------------------------------------------------------------
-  // Aerialways
-  // Mapbox aerialway layer alternative
-  // ---------------------------------------------------------------------------
+// Aerialway
   "nw/aerialway",
-
-  // ---------------------------------------------------------------------------
-  // Ferries
-  // ---------------------------------------------------------------------------
+// Ferry
   "r/route=ferry",
   "w/route=ferry",
   "nw/ferry",
-
-  // ---------------------------------------------------------------------------
-  // Aeroways
-  // Mapbox aeroway-line and aeroway-polygon alternatives
-  // ---------------------------------------------------------------------------
+// Aeroway
   "nw/aeroway",
   "nw/aeroway=runway",
   "nw/aeroway=taxiway",
   "nw/aeroway=helipad",
   "nw/aeroway=apron",
   "nw/aeroway=aerodrome",
-
-  // ---------------------------------------------------------------------------
-  // Water features
-  // Mapbox water and waterway alternatives
-  // ---------------------------------------------------------------------------
+// Waterway
   "nw/waterway",
   "nw/waterway=river",
   "nw/waterway=stream",
@@ -145,7 +112,7 @@ const TOURISTIC_OSM_FILTERS = [
   "nw/waterway=weir",
   "nw/waterway=dam",
   "nw/waterway=waterfall",
-
+// Water
   "nwr/natural=water",
   "nwr/water",
   "nwr/water=lake",
@@ -156,95 +123,71 @@ const TOURISTIC_OSM_FILTERS = [
   "nwr/water=basin",
   "nwr/landuse=reservoir",
   "nwr/landuse=basin",
-
-  // Wetlands
+// Wetlands
   "nwr/natural=wetland",
   "nwr/wetland",
-
-  // ---------------------------------------------------------------------------
-  // Landuse and landcover
-  // Mapbox landuse / landcover alternatives
-  // ---------------------------------------------------------------------------
+// Landuse and Landcover
   "nwr/landuse",
   "nwr/landcover",
-
-  // Agriculture
+// Agriculture
   "nwr/landuse=farmland",
   "nwr/landuse=farmyard",
   "nwr/landuse=orchard",
   "nwr/landuse=vineyard",
   "nwr/landuse=meadow",
   "nwr/landuse=plant_nursery",
-
-  // Forest / wood
+// Forest, wood
   "nwr/natural=wood",
   "nwr/landuse=forest",
-
-  // Grass / scrub / heath
+// Grass, scrub, heath
   "nwr/landuse=grass",
   "nwr/natural=grassland",
   "nwr/natural=scrub",
   "nwr/natural=heath",
-
-  // Rock / sand / bare surfaces
+// Rock, sand, ...
   "nwr/natural=bare_rock",
   "nwr/natural=rock",
   "nwr/natural=scree",
   "nwr/natural=sand",
   "nwr/natural=beach",
   "nwr/natural=dune",
-
-  // Glacier, not very relevant for Czech Republic, but equivalent to Mapbox class
+// Glacier
   "nwr/natural=glacier",
-
-  // Parks and recreation
+// Parks, recreations
   "nwr/leisure=park",
   "nwr/leisure=garden",
   "nwr/leisure=recreation_ground",
   "nwr/leisure=nature_reserve",
-
-  // Sport pitches
+// Sport
   "nwr/leisure=pitch",
   "nwr/sport",
-
-  // Cemeteries
+// Cemetries
   "nwr/landuse=cemetery",
   "nwr/amenity=grave_yard",
-
-  // Residential / commercial / industrial
+// Residential, commercial, industrial
   "nwr/landuse=residential",
   "nwr/landuse=commercial",
   "nwr/landuse=retail",
   "nwr/landuse=industrial",
   "nwr/landuse=quarry",
-
-  // Schools and hospitals as landuse-like features
+// Education, healthcare
   "nwr/amenity=school",
   "nwr/amenity=university",
   "nwr/amenity=college",
   "nwr/amenity=kindergarten",
   "nwr/amenity=hospital",
   "nwr/healthcare=hospital",
-
-  // ---------------------------------------------------------------------------
-  // Protected areas and national parks
-  // Mapbox national-park alternative
-  // ---------------------------------------------------------------------------
+// National parks, protected areas
   "wr/boundary=national_park",
   "r/boundary=national_park",
   "wr/boundary=protected_area",
   "r/boundary=protected_area",
   "nwr/leisure=nature_reserve",
   "nwr/protect_class",
-
-  // ---------------------------------------------------------------------------
-  // Administrative boundaries
-  // Mapbox admin source alternative
-  // ---------------------------------------------------------------------------
+// Administrative boundaries
   "wr/boundary=administrative",
   "r/boundary=administrative",
-
-  // Country borders and regional/local administrative boundaries
+// Country and regional borders
   "wr/admin_level=2",
   "r/admin_level=2",
   "wr/admin_level=4",
@@ -255,51 +198,33 @@ const TOURISTIC_OSM_FILTERS = [
   "r/admin_level=7",
   "wr/admin_level=8",
   "r/admin_level=8",
-
-  // Disputed boundaries, if present
+// Disputed borders
   "nwr/disputed=yes",
   "wr/boundary=disputed",
   "r/boundary=disputed",
-
-  // ---------------------------------------------------------------------------
-  // Buildings and addresses
-  // ---------------------------------------------------------------------------
+// Buildings, adresses
   "nwr/building",
   "nwr/building:part",
   "nwr/entrance",
   "nwr/addr:housenumber",
   "nwr/addr:street",
   "nwr/addr:city",
-
-  // ---------------------------------------------------------------------------
-  // Places and labels
-  // Mapbox place / settlement labels alternative
-  // ---------------------------------------------------------------------------
+// Places and settlements
   "n/place",
   "w/place",
   "r/place",
-
-  // ---------------------------------------------------------------------------
-  // POI features
-  // Mapbox poi-label alternatives
-  // ---------------------------------------------------------------------------
-  "nwr/amenity",
-  "nwr/tourism",
-  "nwr/shop",
+// Points of interest (for touristic map)
+  "nwr/shop=bakery",
+  "nwr/shop=convenience",
+  "nwr/shop=food",
+  "nwr/shop=pastry",
+  "nwr/shop=supermarket",
   "nwr/historic",
   "nwr/leisure",
-  "nwr/sport",
-  "nwr/healthcare",
-  "nwr/emergency",
-  "nwr/man_made",
-
-  // Important natural POIs
   "nwr/natural=peak",
   "nwr/natural=cave_entrance",
   "nwr/natural=spring",
   "nwr/tourism=viewpoint",
-
-  // Visitor amenities
   "nwr/amenity=toilets",
   "nwr/amenity=drinking_water",
   "nwr/amenity=shelter",
@@ -307,51 +232,34 @@ const TOURISTIC_OSM_FILTERS = [
   "nwr/tourism=information",
   "nwr/tourism=picnic_site",
   "nwr/tourism=camp_site",
-
-  // Food and drink
   "nwr/amenity=restaurant",
   "nwr/amenity=cafe",
   "nwr/amenity=fast_food",
   "nwr/amenity=pub",
   "nwr/amenity=bar",
-
-  // Medical
   "nwr/amenity=pharmacy",
   "nwr/amenity=clinic",
   "nwr/amenity=doctors",
   "nwr/amenity=dentist",
-
-  // Motorist amenities
   "nwr/amenity=fuel",
   "nwr/amenity=parking",
   "nwr/amenity=charging_station",
   "nwr/amenity=car_wash",
-
-  // ---------------------------------------------------------------------------
-  // Public transport
-  // ---------------------------------------------------------------------------
+// Public Transport 
   "nw/public_transport",
   "n/highway=bus_stop",
   "nw/amenity=bus_station",
   "nw/railway=station",
   "nw/railway=halt",
   "nw/railway=tram_stop",
-
-  // ---------------------------------------------------------------------------
-  // Barriers, fences, gates, hedges
-  // Mapbox gate-fence-hedge alternative
-  // ---------------------------------------------------------------------------
+// Gate, fence, hedge
   "nw/barrier",
   "nw/barrier=gate",
   "nw/barrier=fence",
   "nw/barrier=hedge",
   "nw/barrier=wall",
   "nw/barrier=retaining_wall",
-
-  // ---------------------------------------------------------------------------
-  // Land / coastal structures
-  // Approximation of Mapbox structure class = land
-  // ---------------------------------------------------------------------------
+// Land structures 
   "nw/man_made=pier",
   "nw/man_made=breakwater",
   "nw/man_made=groyne",
@@ -360,19 +268,14 @@ const TOURISTIC_OSM_FILTERS = [
 ];
 
 const WATER_OSM_FILTERS = [
-  // ---------------------------------------------------------------------------
-  // Main water lines
-  // ---------------------------------------------------------------------------
+// Waterway
   "nw/waterway=river",
   "nw/waterway=stream",
   "nw/waterway=canal",
   "nw/waterway=drain",
   "nw/waterway=ditch",
   "nw/waterway=riverbank",
-
-  // ---------------------------------------------------------------------------
-  // Water polygons
-  // ---------------------------------------------------------------------------
+// Water 
   "nwr/natural=water",
   "nwr/water",
   "nwr/water=lake",
@@ -383,68 +286,41 @@ const WATER_OSM_FILTERS = [
   "nwr/water=basin",
   "nwr/landuse=reservoir",
   "nwr/landuse=basin",
-
-  // ---------------------------------------------------------------------------
-  // Water-related structures
-  // Weirs are not included here because they are exported separately
-  // and then merged into the final file.
-  // ---------------------------------------------------------------------------
+// Water structures (without weirs, those are imported separately)
   "nw/waterway=dam",
   "nw/waterway=waterfall",
   "nw/waterway=lock_gate",
   "nw/waterway=sluice_gate",
-
   "nw/man_made=pier",
   "nw/man_made=breakwater",
   "nw/man_made=groyne",
   "nw/man_made=embankment",
   "nw/embankment=yes",
-
-  // ---------------------------------------------------------------------------
-  // Wetlands
-  // ---------------------------------------------------------------------------
+// Wetland
   "nwr/natural=wetland",
   "nwr/wetland",
-
-  // ---------------------------------------------------------------------------
-  // Ferries and water transport
-  // ---------------------------------------------------------------------------
+// Ferry
   "r/route=ferry",
   "w/route=ferry",
   "nw/ferry",
-
-  // ---------------------------------------------------------------------------
-  // Landuse / landcover visible in the water style
-  // ---------------------------------------------------------------------------
+// Landuse, landcover
   "nwr/landuse",
-  "nwr/natural",
-
   "nwr/landuse=forest",
-  "nwr/natural=wood",
-  "nwr/natural=scrub",
-  "nwr/natural=grassland",
   "nwr/landuse=grass",
   "nwr/landuse=farmland",
   "nwr/landuse=meadow",
   "nwr/landuse=orchard",
   "nwr/landuse=vineyard",
-
+  "nwr/natural",
+  "nwr/natural=wood",
+  "nwr/natural=scrub",
+  "nwr/natural=grassland",
   "nwr/leisure=park",
   "nwr/leisure=garden",
   "nwr/leisure=pitch",
   "nwr/leisure=nature_reserve",
-  "nwr/sport",
-
-  // ---------------------------------------------------------------------------
-  // Roads, paths, bridges, tunnels near water
-  // ---------------------------------------------------------------------------
+// Roads, paths, bridges, tunnels
   "nw/highway",
-  "nw/bridge",
-  "nw/tunnel",
-  "nw/ford",
-  "nw/layer",
-  "nw/oneway",
-
   "w/highway=path",
   "w/highway=footway",
   "w/highway=cycleway",
@@ -455,7 +331,11 @@ const WATER_OSM_FILTERS = [
   "w/highway=service",
   "w/highway=residential",
   "w/highway=unclassified",
-
+  "nw/bridge",
+  "nw/tunnel",
+  "nw/ford",
+  "nw/layer",
+  "nw/oneway",
   "nw/foot",
   "nw/bicycle",
   "nw/horse",
@@ -464,36 +344,42 @@ const WATER_OSM_FILTERS = [
   "nw/surface",
   "nw/smoothness",
   "nw/tracktype",
-
-  // ---------------------------------------------------------------------------
-  // Buildings, places, POI and labels
-  // ---------------------------------------------------------------------------
+// Buldings, addresses
   "nwr/building",
   "nwr/building:part",
   "nwr/entrance",
   "nwr/addr:housenumber",
-
+// Places and settlements
   "n/place",
   "w/place",
   "r/place",
-
-  "nwr/amenity",
-  "nwr/tourism",
-  "nwr/shop",
+// Points of interest
+  "nwr/amenity=bar",
+  "nwr/amenity=biergarten",
+  "nwr/amenity=cafe",
+  "nwr/amenity=fast_food",
+  "nwr/amenity=pub",
+  "nwr/amenity=restaurant",
+  "nwr/amenity=boat_rental",
+  "nwr/amenity=boat_storage",
+  "nwr/amenity=boat_sharing",
+  "nwr/amenity=hospital",
+  "nwr/amenity=pharmacy",
+  "nwr/tourism=camp_site",
+  "nwr/tourism=attraction",
+  "nwr/shop=bakery",
+  "nwr/shop=convenience",
+  "nwr/shop=food",
+  "nwr/shop=supermarket",
+  "nwr/shop=boat",
+  "nwr/shop=outdoor",
+  "nwr/shop=sports",
+  "nwr/shop=rental",
   "nwr/historic",
-  "nwr/leisure",
-  "nwr/healthcare",
-  "nwr/emergency",
-  "nwr/man_made",
-
   "nwr/natural=peak",
   "nwr/natural=spring",
   "nwr/natural=cave_entrance",
-  "nwr/tourism=viewpoint",
-
-  // ---------------------------------------------------------------------------
-  // Administrative boundaries
-  // ---------------------------------------------------------------------------
+// Administrative boundaries
   "nwr/boundary=administrative",
   "r/boundary=administrative",
   "nwr/admin_level=2",
@@ -508,77 +394,119 @@ const WATER_OSM_FILTERS = [
   "r/admin_level=8"
 ];
 
+// Runs a command from a server with command options (args), wait until finishes. Answer: finished or not 
+// Promise = js container for future result. Resolve = if finished successfully, Reject = if finished with error
+// execFile = Node.js function to strat another program (similar to writing in Terminal) - running automatically
 function runCommand(command, args) {
   return new Promise((resolve, reject) => {
-    const child = spawn(command, args, { stdio: ["ignore", "pipe", "pipe"] });
-
-    let stdout = "";
-    let stderr = "";
-
-    child.stdout.on("data", (chunk) => {
-      stdout += chunk.toString();
-    });
-
-    child.stderr.on("data", (chunk) => {
-      stderr += chunk.toString();
-    });
-
-    child.on("close", (code) => {
-      if (code === 0) {
-        resolve({ stdout, stderr });
-      } else {
-        reject(new Error(`${command} failed with code ${code}\n${stderr}`));
+    function commandResult(error, stdout, stderr) {
+      if (error) {
+        reject(new Error(`${command} failed\n${stderr || error.message}`));
+        return;
       }
-    });
+      resolve({ stdout, stderr });
+    }
+    // running execFile 
+    execFile(
+      command,
+      args,
+      { maxBuffer: 200 * 1024 * 1024 }, // 200MB
+      commandResult
+    );
   });
 }
 
-function parseBbox(raw) {
-  if (Array.isArray(raw)) return raw.map(Number);
-  if (typeof raw === "string") return raw.split(",").map(Number);
+// convertng bbox value into numbers 
+// If bboxValue is an array, it converts its values to numbers
+// It bboxValue is a string, it will split by commas
+function parseBbox(bboxValue) {
+  if (Array.isArray(bboxValue)) {
+    const west = Number(bboxValue[0]);
+    const south = Number(bboxValue[1]);
+    const east = Number(bboxValue[2]);
+    const north = Number(bboxValue[3]);
+
+    return [west, south, east, north];
+  }
+
+  if (typeof bboxValue === "string") {
+    const bboxParts = bboxValue.split(",");
+
+    const west = Number(bboxParts[0]);
+    const south = Number(bboxParts[1]);
+    const east = Number(bboxParts[2]);
+    const north = Number(bboxParts[3]);
+
+    return [west, south, east, north];
+  }
+
   return null;
 }
 
+// Chechs if values of bbox are valid 
+// If bbox values are not an array and dont have exactly four items, returning false
+// If they are arrays, it names them "west", "south", "east", "north"
+// Returning only if they (west,south,east,north) are numbers, and if theyre in a right range 
 function isValidBbox(bbox) {
-  if (!Array.isArray(bbox) || bbox.length !== 4) return false;
+  if (!Array.isArray(bbox) || bbox.length !== 4) {
+    return false;
+  }
 
-  const [west, south, east, north] = bbox.map(Number);
+  const west = Number(bbox[0]);
+  const south = Number(bbox[1]);
+  const east = Number(bbox[2]);
+  const north = Number(bbox[3]);
 
-  if ([west, south, east, north].some((n) => Number.isNaN(n))) return false;
-  if (west >= east) return false;
-  if (south >= north) return false;
-  if (south < -90 || north > 90) return false;
-  if (west < -180 || east > 180) return false;
-
-  return true;
+  return (
+    !Number.isNaN(west) &&
+    !Number.isNaN(south) &&
+    !Number.isNaN(east) &&
+    !Number.isNaN(north) &&
+    west < east &&
+    south < north &&
+    west >= -180 &&
+    east <= 180 &&
+    south >= -90 &&
+    north <= 90
+  );
 }
 
+// Allowing "hiking" or "weirs"
 function isValidKind(kind) {
   return kind === "hiking" || kind === "weirs";
 }
 
-function isValidStyle(style) {
-  return style === "topographic" || style === "touristic" || style === "water";
-}
-
+// Deleting of temporary files 
 async function cleanup(files) {
   for (const file of files) {
-    if (!file) continue;
-    await fs.unlink(file).catch(() => {});
+    if (!file) {
+      continue;
+    }
+
+    try {
+      await fs.unlink(file);
+    } catch (error) {                                   // The file may already be deleted or may not exist.
+    }
   }
 }
 
+// Creating osm.pbf file with hiking routes or weirs for the current map area
+// Input: values of bounding box, kind = "hiking" or "weirs", outputFile = where to safe osm.pbf file
+// The name of created file is always unique because of using time of downloading in miliseconds in a file name
+// Created file is used both for showing paths or weirs in a map window or for export with data regarding on chosen style
 async function createFilteredPbf({ bbox, kind, outputFile }) {
-  const [west, south, east, north] = bbox;
-  const stamp = Date.now();
-  const cutFile = path.join(EXPORT_DIR, `cut_${stamp}.osm.pbf`);
+  const [west, south, east, north] = bbox;                                     // Creating constants named west, south, ... which contain values from bbox
+  const stamp = Date.now();                                                   // Current time in miliseconds
+  const cutFile = path.join(EXPORT_DIR, `cut_${stamp}.osm.pbf`);              // EXPORT_DIR is Export folder, `cut_${stamp}.osm.pbf` is a file name, where stamp is time in miliseconds
 
+  // Firstly, cuts a source file to the selected area (bbox size) 
+  // Secondly, filters cutted file 
   try {
     if (kind === "hiking") {
       await runCommand("osmium", [
         "extract",
         `--bbox=${west},${south},${east},${north}`,
-        "--strategy=smart",
+        "--strategy=complete_ways",
         "-S",
         "types=route",
         DATA_FILE,
@@ -623,6 +551,9 @@ async function createFilteredPbf({ bbox, kind, outputFile }) {
   }
 }
 
+// Creating osm.pbf file filtering with TOURISTIC_OSM_FILTERS
+// Firstly, cuts a source file to the selected area (bbox size) 
+// Secondly, filters a cutted file
 async function createTouristicPbf({ bbox, outputFile }) {
   const [west, south, east, north] = bbox;
   const stamp = Date.now();
@@ -632,7 +563,7 @@ async function createTouristicPbf({ bbox, outputFile }) {
     await runCommand("osmium", [
       "extract",
       `--bbox=${west},${south},${east},${north}`,
-      "--strategy=smart",
+      "--strategy=complete_ways",
       DATA_FILE,
       "-o",
       cutFile,
@@ -652,6 +583,9 @@ async function createTouristicPbf({ bbox, outputFile }) {
   }
 }
 
+// Creating osm.pbf file filtering with WATER_OSM_FILTERS
+// Firstly, cuts a source file to the selected area (bbox size) 
+// Secondly, filters a cutted file
 async function createWaterPbf({ bbox, outputFile }) {
   const [west, south, east, north] = bbox;
   const stamp = Date.now();
@@ -681,60 +615,11 @@ async function createWaterPbf({ bbox, outputFile }) {
   }
 }
 
-async function readGeojson(filePath) {
-  const raw = await fs.readFile(filePath, "utf8");
-  return JSON.parse(raw);
-}
-
-async function writeGeojson(filePath, geojson) {
-  await fs.writeFile(
-    filePath,
-    JSON.stringify(geojson, null, 2),
-    "utf8"
-  );
-}
-
-function decodeImageDataUrl(dataUrl) {
-  const match = /^data:image\/(png|jpeg);base64,(.+)$/.exec(dataUrl || "");
-
-  if (!match) {
-    throw new Error("Invalid image data URL");
-  }
-
-  return {
-    extension: match[1] === "jpeg" ? "jpg" : "png",
-    buffer: Buffer.from(match[2], "base64")
-  };
-}
-
-function lonLatToWebMercator(lon, lat) {
-  const maxLat = 85.05112878;
-  const clampedLat = Math.max(Math.min(lat, maxLat), -maxLat);
-
-  const radius = 6378137;
-  const x = radius * lon * Math.PI / 180;
-  const y =
-    radius *
-    Math.log(Math.tan(Math.PI / 4 + clampedLat * Math.PI / 360));
-
-  return [x, y];
-}
-
-function mergeFeatureCollections(...collections) {
-  return {
-    type: "FeatureCollection",
-    features: collections.flatMap((collection) => {
-      if (!collection || !Array.isArray(collection.features)) {
-        return [];
-      }
-
-      return collection.features;
-    })
-  };
-}
-
-async function createTouristicGeojson({ bbox, outputFile }) {
-  const stamp = Date.now();
+// Creating two separate geojson files: touristic + hiking paths 
+// Firstly, creates osm.pbf 
+// Secondly, creates geojson from osm.pbf
+async function createTouristicGeojsonFiles({ bbox }) {
+  const stamp = Date.now();                                                        // timestamp for file names
 
   const touristicPbf = path.join(EXPORT_DIR, `touristic_${stamp}.osm.pbf`);
   const touristicGeojson = path.join(EXPORT_DIR, `touristic_${stamp}.geojson`);
@@ -743,12 +628,13 @@ async function createTouristicGeojson({ bbox, outputFile }) {
   const hikingGeojson = path.join(EXPORT_DIR, `hiking_routes_${stamp}.geojson`);
 
   try {
-    // 1) Turistický podklad podle TOURISTIC_OSM_FILTERS
+    // creating osm.pbf filtered and cutted
     await createTouristicPbf({
       bbox,
       outputFile: touristicPbf
     });
 
+    // creating geojson from osm.pbf
     await runCommand("osmium", [
       "export",
       touristicPbf,
@@ -757,52 +643,48 @@ async function createTouristicGeojson({ bbox, outputFile }) {
       "--overwrite"
     ]);
 
-    // 2) Barevné KČT turistické trasy přes vlastní Python skript
+    // creating osm.pbf with hiking routes
     await createFilteredPbf({
       bbox,
       kind: "hiking",
       outputFile: hikingPbf
     });
 
+    // creating geojson with coloured hiking routes from osm.pbf
     await runCommand("python3", [
       path.join(SCRIPT_DIR, "hiking_to_geojson.py"),
       hikingPbf,
       hikingGeojson
     ]);
 
-    const baseData = await readGeojson(touristicGeojson);
-    const hikingData = await readGeojson(hikingGeojson);
-
-    // 3) Spojení do jednoho GeoJSONu
-    const merged = mergeFeatureCollections(baseData, hikingData);
-
-    await writeGeojson(outputFile, merged);
+    return [touristicGeojson, hikingGeojson];
+  } catch (error) {
+    await cleanup([touristicGeojson, hikingGeojson]);                             // if export fails, deletes incompleted geojson files
+    throw error;
   } finally {
-    await cleanup([
-      touristicPbf,
-      touristicGeojson,
-      hikingPbf,
-      hikingGeojson
-    ]);
+    await cleanup([touristicPbf, hikingPbf]);                                    // if exports succeded, deletes temporary osm.pbf files
   }
 }
 
-async function createWaterGeojson({ bbox, outputFile }) {
-  const stamp = Date.now();
-
+// Creating two separate geojson files: water + weirs
+// Firstly, creates osm.pbf 
+// Secondly, creates geojson from osm.pbf
+async function createWaterGeojsonFiles({ bbox }) {
+  const stamp = Date.now();                                                      // timestamp for file names
+  // Filenames 
   const waterPbf = path.join(EXPORT_DIR, `water_${stamp}.osm.pbf`);
   const waterGeojson = path.join(EXPORT_DIR, `water_${stamp}.geojson`);
-
   const weirsPbf = path.join(EXPORT_DIR, `weirs_${stamp}.osm.pbf`);
   const weirsGeojson = path.join(EXPORT_DIR, `weirs_${stamp}.geojson`);
 
   try {
-    // 1) Water base data according to WATER_OSM_FILTERS
+    // creating osm.pbf filtered and cutted
     await createWaterPbf({
       bbox,
       outputFile: waterPbf
     });
 
+    // creating geojson from osm.pbf
     await runCommand("osmium", [
       "export",
       waterPbf,
@@ -811,13 +693,14 @@ async function createWaterGeojson({ bbox, outputFile }) {
       "--overwrite"
     ]);
 
-    // 2) Dedicated weir data
+    // creating osm.pbf with weirs
     await createFilteredPbf({
       bbox,
       kind: "weirs",
       outputFile: weirsPbf
     });
 
+    // creating geojson with weirs
     await runCommand("osmium", [
       "export",
       weirsPbf,
@@ -826,42 +709,36 @@ async function createWaterGeojson({ bbox, outputFile }) {
       "--overwrite"
     ]);
 
-    // 3) Merge water base + weirs
-    const waterData = await readGeojson(waterGeojson);
-    const weirsData = await readGeojson(weirsGeojson);
-
-    const merged = mergeFeatureCollections(waterData, weirsData);
-
-    await writeGeojson(outputFile, merged);
+    return [waterGeojson, weirsGeojson];
+  } catch (error) {
+    await cleanup([waterGeojson, weirsGeojson]);                                            // if export fails, deletes incompleted geojson files
+    throw error;
   } finally {
-    await cleanup([
-      waterPbf,
-      waterGeojson,
-      weirsPbf,
-      weirsGeojson
-    ]);
+    await cleanup([waterPbf, weirsPbf]);                                                    // if exports succeded, deletes temporary osm.pbf files
   }
 }
 
+// Api endpoint - preview of hiking routes or weirs by creating temporary geojson 
 app.get("/api/preview", async (req, res) => {
-  const kind = req.query.kind;
-  const bbox = parseBbox(req.query.bbox);
-
+  const kind = req.query.kind;            // kind value from url          
+  const bbox = parseBbox(req.query.bbox); // bbox values from url and converting to numbers
+  // cheking if chosen kind is valid (hiking or weirs)
   if (!isValidKind(kind)) {
     return res.status(400).json({ error: "Invalid kind" });
   }
-
+  // checking if bbox values are valid 
   if (!isValidBbox(bbox)) {
     return res.status(400).json({ error: "Invalid bbox" });
   }
-
+  // naming of file 
   const stamp = Date.now();
   const filteredFile = path.join(EXPORT_DIR, `preview_${kind}_${stamp}.osm.pbf`);
   const geojsonFile = path.join(EXPORT_DIR, `preview_${kind}_${stamp}.geojson`);
 
   try {
+    // Creating osm.pbf from current bbox and chosen kind to output file
     await createFilteredPbf({ bbox, kind, outputFile: filteredFile });
-
+    // for weirs
     if (kind === "weirs") {
       await runCommand("osmium", [
         "export",
@@ -870,6 +747,7 @@ app.get("/api/preview", async (req, res) => {
         geojsonFile,
         "--overwrite"
       ]);
+      // for hiking paths
     } else {
       await runCommand("python3", [
         path.join(SCRIPT_DIR, "hiking_to_geojson.py"),
@@ -877,10 +755,10 @@ app.get("/api/preview", async (req, res) => {
         geojsonFile
       ]);
     }
-
-    const raw = await fs.readFile(geojsonFile, "utf8");
-    const geojson = JSON.parse(raw);
-
+    // converting geojson file to js object
+    const geojsonText = await fs.readFile(geojsonFile, "utf8");
+    const geojson = JSON.parse(geojsonText);
+    // sending geojson back to browser 
     res.json(geojson);
   } catch (error) {
     console.error(error);
@@ -889,10 +767,11 @@ app.get("/api/preview", async (req, res) => {
       details: error.message
     });
   } finally {
-    await cleanup([filteredFile, geojsonFile]);
+    await cleanup([filteredFile, geojsonFile]);                        // deleting temporary files after js object is created and shown in the map window
   }
 });
 
+// Api endpoint - download current selection into geojson format 
 app.post("/api/download-geojson", async (req, res) => {
   const {
     kind,
@@ -900,18 +779,14 @@ app.post("/api/download-geojson", async (req, res) => {
     style,
     includeTouristicBase,
     includeWaterBase
-  } = req.body;
-
+  } = req.body;                                                           // from app.js
+  // checking if kind is valid (hiking or weirs)
   if (!isValidKind(kind)) {
     return res.status(400).json({ error: "Invalid kind" });
   }
-
+  // checking if bbox values are valid
   if (!isValidBbox(bbox)) {
     return res.status(400).json({ error: "Invalid bbox" });
-  }
-
-  if (style && !isValidStyle(style)) {
-    return res.status(400).json({ error: "Invalid style" });
   }
 
   const stamp = Date.now();
@@ -926,28 +801,16 @@ app.post("/api/download-geojson", async (req, res) => {
     kind === "weirs" &&
     includeWaterBase === true;
 
-  const outputName = shouldExportTouristicGeojson
-    ? `touristic_hiking_${stamp}.geojson`
-    : shouldExportWaterGeojson
-      ? `water_weirs_${stamp}.geojson`
-      : `${kind}_${stamp}.geojson`;
-
-  const outputFile = path.join(EXPORT_DIR, outputName);
+  const outputFile = path.join(EXPORT_DIR, `${kind}_${stamp}.geojson`);
   const tempPbfFile = path.join(EXPORT_DIR, `${kind}_${stamp}.osm.pbf`);
 
-  let success = false;
+  let outputFiles = [];
 
   try {
     if (shouldExportTouristicGeojson) {
-      await createTouristicGeojson({
-        bbox,
-        outputFile
-      });
+      outputFiles = await createTouristicGeojsonFiles({ bbox });
     } else if (shouldExportWaterGeojson) {
-      await createWaterGeojson({
-        bbox,
-        outputFile
-      });
+      outputFiles = await createWaterGeojsonFiles({ bbox });
     } else {
       await createFilteredPbf({
         bbox,
@@ -970,29 +833,29 @@ app.post("/api/download-geojson", async (req, res) => {
           "--overwrite"
         ]);
       }
-    }
 
-    success = true;
+      outputFiles = [outputFile];
+    }
 
     res.json({
       ok: true,
-      downloadUrl: `/downloads/${path.basename(outputFile)}`
+      downloadUrls: outputFiles.map((file) => `/downloads/${path.basename(file)}`)
     });
   } catch (error) {
     console.error(error);
+
+    await cleanup(outputFiles);
+
     res.status(500).json({
       error: "GeoJSON download failed",
       details: error.message
     });
   } finally {
     await cleanup([tempPbfFile]);
-
-    if (!success) {
-      await cleanup([outputFile]);
-    }
   }
 });
 
+// Server start 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
