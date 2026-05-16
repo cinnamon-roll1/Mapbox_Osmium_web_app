@@ -1,4 +1,4 @@
-# BP Mapbox Osmium
+# Mapbox Osmium Web App
 
 Web application for preview selected OpenStreetMap data in Mapbox and exporting the current map selection from OpenStreetMap data to GeoJSON.
 
