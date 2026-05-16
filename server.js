@@ -1,32 +1,30 @@
-import express from "express";                      // for 
-import path from "path";                            //
-import fs from "fs/promises";                       //
-import { existsSync } from "fs";                    //
-import { fileURLToPath } from "url";                //
-import { execFile } from "child_process";           //
+import express from "express";                      // for server and api 
+import path from "path";                            // for working with file paths
+import fs from "fs/promises";                       // for working with await and async
+import { existsSync } from "fs";                    // for checking if file or folder exist 
+import { fileURLToPath } from "url";                // to convert file URL to normal file path 
+import { execFile } from "child_process";           // for running external programs 
 
-const __filename = fileURLToPath(import.meta.url);  //
-const __dirname = path.dirname(__filename);         //
+const __filename = fileURLToPath(import.meta.url);  // path to server.js
+const __dirname = path.dirname(__filename);         // path to the project folder 
 
-const app = express();                              //
-const PORT = 3000;                                  //
+const app = express();                              // to create Express server
+const PORT = 3000;                                  // where the server runs
 
-const DATA_FILE = path.join(__dirname, "data", "czech-republic-latest.osm.pbf");  //
-const EXPORT_DIR = path.join(__dirname, "exports");                               //
-const PUBLIC_DIR = path.join(__dirname, "public");                                //
-const SCRIPT_DIR = path.join(__dirname, "scripts");                               //
+const DATA_FILE = path.join(__dirname, "data", "czech-republic-latest.osm.pbf");  // where osm.pbf data file is located
+const EXPORT_DIR = path.join(__dirname, "exports");                               // where Export folder is located
+const PUBLIC_DIR = path.join(__dirname, "public");                                // where Public folder is located
+const SCRIPT_DIR = path.join(__dirname, "scripts");                               // where Sripts folder is located
 
+// if osm.pbf data file does not exist, displays Error
 if (!existsSync(DATA_FILE)) {
   console.error("Missing input file:", DATA_FILE);
-  process.exit(1);
+  process.exit(1);                                                                // stops the server 
 }
 
-await fs.mkdir(EXPORT_DIR, { recursive: true });
-await fs.mkdir(SCRIPT_DIR, { recursive: true });
-
-app.use(express.json({ limit: "200mb" }));
-app.use(express.static(PUBLIC_DIR));
-app.use("/downloads", express.static(EXPORT_DIR));
+app.use(express.json({ limit: "200mb" }));                                        // requests up to 200MB
+app.use(express.static(PUBLIC_DIR));                                              // opening files from Public folder + API routes from server 
+app.use("/downloads", express.static(EXPORT_DIR));                                // allowing exported files to be downloaded
 
 const TOURISTIC_OSM_FILTERS = [
 // Hiking routes relations
