@@ -38,6 +38,22 @@ def detect_kct_color(tags):
 
         if tags.get(tag_name):
             return color_name, color_def["hex"]
+
+    osmc_symbol = tags.get("osmc:symbol", "")
+
+    if osmc_symbol:
+        for color_name, color_def in KCT_COLOR_MAP.items():
+            if (
+                osmc_symbol.startswith(f"{color_name}:")
+                or f"{color_name}_bar" in osmc_symbol
+                or f"{color_name}_backslash" in osmc_symbol
+            ):
+                return color_name, color_def["hex"]
+
+    colour = tags.get("colour", "").lower()
+
+    if colour in KCT_COLOR_MAP:
+        return colour, KCT_COLOR_MAP[colour]["hex"]
     # routes without kct color would be shown in grey color 
     return None, "#666666"             
 
